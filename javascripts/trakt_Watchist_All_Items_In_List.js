@@ -1,3 +1,5 @@
+//复制粘贴到控制栏，自动将当前列表所有 未观看/未添加列表 的电影加入watchlist 方便radarr抓取
+
 setTimeout(() => {
     let token;
     $("head > meta").each(function () {

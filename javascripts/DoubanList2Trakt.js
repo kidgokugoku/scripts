@@ -8,9 +8,9 @@
 // @match       *://www.douban.com/doulist/*
 // @match       *://movie.douban.com/subject/*
 // @require     https://cdn.rawgit.com/zenorocha/clipboard.js/v2.0.10/dist/clipboard.min.js
-// @version     1.0
-// @author      -
-// @description 2022/1/27 上午11:42:01
+// @version     ?
+// @author      goku
+// @description 一键将豆瓣 想看列表/豆列 的内容转到trakt watchlist 方便radarr抓取
 // ==/UserScript==
 function openTrakturl(url) {
     fetch(url).then(function (response) {
