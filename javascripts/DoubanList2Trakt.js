@@ -7,6 +7,7 @@
 // @match       *://trakt.tv/search/imdb*
 // @match       *://www.douban.com/doulist/*
 // @match       *://movie.douban.com/subject/*
+// @require     https://cdn.rawgit.com/zenorocha/clipboard.js/v2.0.10/dist/clipboard.min.js
 // @version     1.0
 // @author      -
 // @description 2022/1/27 上午11:42:01
@@ -18,8 +19,9 @@ function openTrakturl(url) {
         let parser = new DOMParser();
         let doc = parser.parseFromString(html, 'text/html');
         if (!(document.querySelector("#content > div.grid-16-8.clearfix > div.article > div.episode_list"))) {
-            let trakturl = 'https://trakt.tv/search/imdb?query=' + $(doc).find("#info span.pl:contains('IMDb')")[0].nextSibling.nodeValue.trim();
-            if (trakturl) window.open(trakturl, 'gokutaggg' + url);
+            let trakturl = $(doc).find("#info span.pl:contains('IMDb')")[0].nextSibling.nodeValue.trim();
+            if (trakturl == '') trakturl = $("#info span.pl:contains('IMDb')")[0].nextElementSibling.innerText;
+            if (trakturl != '') window.open('https://trakt.tv/search/imdb?query=' + trakturl, 'gokutaggg' + url);
             //GM_openInTab($(this).find('a')[0].href)
         }
     })
@@ -45,8 +47,6 @@ function openDoubanUrl(List) {
         })
     }
     else if (document.URL.match('doulist') && document.URL.match('douban')) {
-        let list = []
-        $('#content > div > div.article > div.doulist-filter > a:nth-child(5)').after('<span> · </span><a href="javascript:void(0);" id="batchOpenDouban">转trakt</a>');
 
         $('#content > div > div.article > div.doulist-filter > a:nth-child(5)').after('<span> · </span><a href="javascript:void(0);" id="showAll">showAll</a>');
         $("#showAll").click(function () {
@@ -70,11 +70,15 @@ function openDoubanUrl(List) {
 
         })
 
+        let list = []
+        $('#content > div > div.article > div.doulist-filter > a:nth-child(5)').after('<span> · </span><a href="javascript:void(0);" id="batchOpenDouban">转trakt</a>');
         $("#batchOpenDouban").click(function () {
             $('#batchOpenDouban').attr('id', '')
-
-            let pageNow = $('#content > div > div.article > div.paginator > span.thispage')[0].innerText;
-            let pageTtl = $('#content > div > div.article > div.paginator > span.thispage')[0].getAttribute('data-total-page');
+            let pageNow = 1; let pageTtl = 1;
+            if ($('#content > div > div.article > div.paginator > span.thispage').length) {
+                pageNow = $('#content > div > div.article > div.paginator > span.thispage')[0].innerText;
+                pageTtl = $('#content > div > div.article > div.paginator > span.thispage')[0].getAttribute('data-total-page');
+            }
             $('#content > div > div.article > div.doulist-item').each(function () {
                 try {
                     list.push($(this).find('div > div.bd.doulist-subject > div.title > a')[0].href);
@@ -90,46 +94,57 @@ function openDoubanUrl(List) {
                 window.open(document.URL + '&start=25', target = '_self');
         })
     }
-    else if (document.URL.match('subject') && window.name.match('gokuTagDouban')) {
-        setTimeout(function () {
-            console.log('working');
-            let url = document.URL;
-            //openTrakturl(url);
-            let trakturl
-            try {
-                trakturl = 'https://trakt.tv/search/imdb?query=' + $("#info span.pl:contains('IMDb')")[0].nextSibling.nodeValue.trim();
-            } catch (e) { console.error(e); }
-            if (trakturl) window.open(trakturl, 'gokutaggg' + url);
+    else if (document.URL.match('subject')) {
+        if (window.name.match('gokuTagDouban')) {
+            setTimeout(function () {
+                console.log('working');
+                let url = document.URL;
+                //openTrakturl(url);
+                let trakturl
+                try {
+                    trakturl = 'https://trakt.tv/search/imdb?query=' + $("#info span.pl:contains('IMDb')")[0].nextSibling.nodeValue.trim();
+                } catch (e) { console.error(e); }
+                if (trakturl) window.open(trakturl, 'gokutaggg' + url);
 
-            if (!$('#interest_sect_level > div > a').length) {
-                let ck = $('#db-global-nav > div > div.top-nav-info > ul > li.nav-user-account > div > table > tbody > tr:nth-child(5) > td > a')[0].href.split('=').pop();
-                fetch(url.replace("com/subject", 'com/j/subject') + "interest", {
-                    "headers": {
-                        "accept": "application/json, text/javascript, */*; q=0.01",
-                        "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
-                        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                        "sec-ch-ua": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"98\", \"Google Chrome\";v=\"98\"",
-                        "sec-ch-ua-mobile": "?0",
-                        "sec-ch-ua-platform": "\"Windows\"",
-                        "sec-fetch-dest": "empty",
-                        "sec-fetch-mode": "cors",
-                        "sec-fetch-site": "same-origin",
-                        "x-requested-with": "XMLHttpRequest"
-                    },
-                    "referrer": document.URL,
-                    "referrerPolicy": "unsafe-url",
-                    "body": "ck=" + ck + "&interest=wish&foldcollect=F&tags=&comment=",
-                    "method": "POST",
-                    "mode": "cors",
-                    "credentials": "include"
-                }).then(function (response) {
-                    console.log('返回了:' + response.status);
-                    if (response.ok) window.close();
-                });;
-            }
-            else window.close();
-        }, 2000)
-
+                if (!$('#interest_sect_level > div > a').length) {
+                    let ck = $('#db-global-nav > div > div.top-nav-info > ul > li.nav-user-account > div > table > tbody > tr:nth-child(5) > td > a')[0].href.split('=').pop();
+                    fetch(url.replace("com/subject", 'com/j/subject') + "interest", {
+                        "headers": {
+                            "accept": "application/json, text/javascript, */*; q=0.01",
+                            "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
+                            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                            "sec-ch-ua": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"98\", \"Google Chrome\";v=\"98\"",
+                            "sec-ch-ua-mobile": "?0",
+                            "sec-ch-ua-platform": "\"Windows\"",
+                            "sec-fetch-dest": "empty",
+                            "sec-fetch-mode": "cors",
+                            "sec-fetch-site": "same-origin",
+                            "x-requested-with": "XMLHttpRequest"
+                        },
+                        "referrer": document.URL,
+                        "referrerPolicy": "unsafe-url",
+                        "body": "ck=" + ck + "&interest=wish&foldcollect=F&tags=&comment=",
+                        "method": "POST",
+                        "mode": "cors",
+                        "credentials": "include"
+                    }).then(function (response) {
+                        console.log('返回了:' + response.status);
+                        if (response.ok) window.close();
+                    });;
+                }
+                else window.close();
+            }, 2000)
+        }
+        else {
+            let id = $("#info span.pl:contains('IMDb')")[0].nextSibling.nodeValue.trim();
+            let zwzy = $('#content > h1 > span:nth-child(1)')[0].innerHTML.replaceAll(' ', '.') + '.' + $('#content > h1 > span.year')[0].innerHTML.replace('(', '').replace(')', '') + '.';
+            $("div#info").append(`<br><span class=\"sourceName\" >资源名称: </span><a id=\"SCBTN\" class=\"btn\" data-clipboard-text=\"${zwzy}${id}\" >${zwzy}${id}</a>`);
+            let btn = document.getElementById('SCBTN')
+            var clipboard = new ClipboardJS(btn);
+            clipboard.on('success', function (e) {
+                console.log(e);
+            });
+        }
     }
     else if (document.URL.match('movies') && document.URL.match('trakt') && window.name.match('gokutaggg')) {
         {
